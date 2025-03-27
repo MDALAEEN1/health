@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "673638857430",
+    "project_id": "helth-instance-app",
+    "storage_bucket": "helth-instance-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:673638857430:android:1bae28db07f705130e2777",
+        "android_client_info": {
+          "package_name": "com.example.helthapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtXsGEfVjVacHdey74k8Fsy7maSaAPM3k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
