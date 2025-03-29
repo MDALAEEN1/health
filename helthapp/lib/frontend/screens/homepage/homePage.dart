@@ -2,6 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:helthapp/frontend/screens/homepage/DoctorDetailPage.dart';
 import 'package:helthapp/frontend/screens/homepage/PharmacyProfilePage.dart';
+import 'package:helthapp/frontend/screens/homepage/veiwAll.dart';
+import 'package:helthapp/frontend/screens/subscribe/subscribe.dart';
+import 'package:shimmer/shimmer.dart';
 
 class HomePage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -95,6 +98,16 @@ class HomePage extends StatelessWidget {
                     title: "الملف الشخصي",
                     onTap: () => _navigateTo(context, '/profile'),
                   ),
+                  _buildDrawerItem(
+                      icon: Icons.subscript,
+                      title: "الاشتراكات",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => PricingPlansPage()),
+                        );
+                      }),
 
                   // Settings Section
                   _buildDrawerItem(
@@ -185,15 +198,23 @@ class HomePage extends StatelessWidget {
                       ),
                     ),
                   )),
-              _buildSectionWithViewAll('Services', screenWidth),
+              Text(
+                "Services",
+                style: TextStyle(
+                  fontSize: screenWidth * 0.05,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               SizedBox(height: screenHeight * 0.01),
               _buildServicesRow(screenHeight, screenWidth),
               SizedBox(height: screenHeight * 0.02),
-              _buildSectionWithViewAll('Pharmacy', screenWidth),
+              _buildSectionWithViewAll(
+                  'Pharmacy', screenWidth, "pharmacies", context),
               SizedBox(height: screenHeight * 0.01),
               _buildPharmacyList(screenHeight, screenWidth),
               SizedBox(height: screenHeight * 0.02),
-              _buildSectionWithViewAll('Popular Doctors', screenWidth),
+              _buildSectionWithViewAll(
+                  'Popular Doctors', screenWidth, "context", context),
               SizedBox(height: screenHeight * 0.01),
               _buildDoctorsList(screenHeight, screenWidth),
             ],
@@ -219,7 +240,8 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionWithViewAll(String title, double screenWidth) {
+  Widget _buildSectionWithViewAll(String title, double screenWidth,
+      String categoryType, BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -231,7 +253,14 @@ class HomePage extends StatelessWidget {
           ),
         ),
         TextButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ViewAllPage(categoryType: categoryType),
+              ),
+            );
+          },
           child: Text(
             'View all >',
             style: TextStyle(fontSize: screenWidth * 0.04),
@@ -306,11 +335,17 @@ class HomePage extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: pharmacies.length,
             itemBuilder: (context, index) {
-              final pharmacy = pharmacies[index].data() as Map<String, dynamic>;
+              final doc = pharmacies[index];
+              final pharmacy = doc.data() as Map<String, dynamic>;
+
+              // ✅ إضافة id للصيدلية
+              final pharmacyId = doc.id;
+
               return _buildPharmacyCard(
+                pharmacyId, // ✅ تمرير ID هنا
                 pharmacy['name'] ?? 'No Name',
                 pharmacy['location'] ?? 'Unknown Location',
-                pharmacy['image'] ?? 'assets/default_pharmacy.png',
+                pharmacy['image'] ?? 'https://via.placeholder.com/150',
                 screenHeight,
                 screenWidth,
                 context: context,
@@ -322,17 +357,21 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPharmacyCard(String name, String location, String image,
-      double screenHeight, double screenWidth,
+  Widget _buildPharmacyCard(
+      String pharmacyId, // ✅ إضافة هذا الباراميتر
+      String name,
+      String location,
+      String image,
+      double screenHeight,
+      double screenWidth,
       {required BuildContext context}) {
     return InkWell(
       onTap: () {
-        // للانتقال لصفحة الصيدلية
+        // ✅ تمرير pharmacyId إلى الصفحة الجديدة
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                PharmacyProfilePage(pharmacyId: 'pharmacy_document_id'),
+            builder: (context) => PharmacyProfilePage(pharmacyId: pharmacyId),
           ),
         );
       },
@@ -344,11 +383,15 @@ class HomePage extends StatelessWidget {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(screenWidth * 0.03),
-              child: Image.asset(
-                image,
+              child: Image.network(
+                image, // ✅ تغيير إلى `Image.network` لدعم الصور من الإنترنت
                 height: screenHeight * 0.10,
                 width: screenWidth * 0.4,
                 fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(child: CircularProgressIndicator());
+                },
                 errorBuilder: (context, error, stackTrace) => Container(
                   height: screenHeight * 0.13,
                   width: screenWidth * 0.4,
@@ -369,227 +412,260 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-}
 
-Widget _buildDoctorsList(double screenHeight, double screenWidth) {
-  return StreamBuilder<QuerySnapshot>(
-    stream: FirebaseFirestore.instance.collection('doctors').snapshots(),
-    builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        return Center(child: Text('حدث خطأ في تحميل بيانات الأطباء'));
-      }
+  Widget _buildDoctorsList(double screenHeight, double screenWidth) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('doctors').snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(child: Text('حدث خطأ في تحميل بيانات الأطباء'));
+        }
 
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return Center(child: CircularProgressIndicator());
-      }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
 
-      final doctors = snapshot.data!.docs;
+        final doctors = snapshot.data!.docs;
 
-      if (doctors.isEmpty) {
-        return Center(child: Text('لا يوجد أطباء متاحين حالياً'));
-      }
+        if (doctors.isEmpty) {
+          return Center(child: Text('لا يوجد أطباء متاحين حالياً'));
+        }
 
-      return SizedBox(
-        height: screenHeight * 0.25,
-        child: ListView.builder(
-          scrollDirection: Axis.horizontal,
-          itemCount: doctors.length,
-          itemBuilder: (context, index) {
-            final doctor = doctors[index].data() as Map<String, dynamic>;
-            return _buildDoctorCard(
-              doctor: doctor,
-              screenHeight: screenHeight,
-              screenWidth: screenWidth,
-              context: context,
-            );
-          },
-        ),
-      );
-    },
-  );
-}
+        return SizedBox(
+          height: screenHeight * 0.25,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: doctors.length,
+            itemBuilder: (context, index) {
+              final doc = doctors[index];
+              final doctor = doc.data() as Map<String, dynamic>;
+
+              // ✅ إضافة id إلى بيانات الطبيب
+              doctor['id'] = doc.id;
+
+              return _buildDoctorCard(
+                doctor: doctor,
+                screenHeight: screenHeight,
+                screenWidth: screenWidth,
+                context: context,
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
 
 // Helper method to build drawer items
-Widget _buildDrawerItem({
-  required IconData icon,
-  required String title,
-  required Function() onTap,
-  Color? textColor,
-  Color? iconColor,
-}) {
-  return ListTile(
-    contentPadding: EdgeInsets.symmetric(horizontal: 8),
-    leading: Icon(
-      icon,
-      color: iconColor ?? Colors.blue[700],
-      size: 24,
-    ),
-    title: Text(
-      title,
-      style: TextStyle(
-        fontSize: 16,
-        color: textColor ?? Colors.black87,
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String title,
+    required Function() onTap,
+    Color? textColor,
+    Color? iconColor,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.symmetric(horizontal: 8),
+      leading: Icon(
+        icon,
+        color: iconColor ?? Colors.blue[700],
+        size: 24,
       ),
-    ),
-    onTap: onTap,
-    minLeadingWidth: 24,
-    dense: true,
-  );
-}
+      title: Text(
+        title,
+        style: TextStyle(
+          fontSize: 16,
+          color: textColor ?? Colors.black87,
+        ),
+      ),
+      onTap: onTap,
+      minLeadingWidth: 24,
+      dense: true,
+    );
+  }
 
 // Navigation helper method
-void _navigateTo(BuildContext context, String route) {
-  Navigator.pop(context);
-  Navigator.pushNamed(context, route);
-}
+  void _navigateTo(BuildContext context, String route) {
+    Navigator.pop(context);
+    Navigator.pushNamed(context, route);
+  }
 
 // Logout handler
-void _handleLogout(BuildContext context) {
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text("تأكيد تسجيل الخروج"),
-      content: Text("هل أنت متأكد أنك تريد تسجيل الخروج؟"),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text("إلغاء"),
-        ),
-        TextButton(
-          onPressed: () {
-            Navigator.pop(context);
-            Navigator.pop(context);
-            // Add your logout logic here
-          },
-          child: Text(
-            "تسجيل الخروج",
-            style: TextStyle(color: Colors.red),
+  void _handleLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("تأكيد تسجيل الخروج"),
+        content: Text("هل أنت متأكد أنك تريد تسجيل الخروج؟"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("إلغاء"),
           ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildDetailRow(String label, String value) {
-  return Padding(
-    padding: EdgeInsets.symmetric(vertical: 4),
-    child: Row(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
-        ),
-        SizedBox(width: 10),
-        Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ],
-    ),
-  );
-}
-
-Widget _buildDoctorCard({
-  required BuildContext context, // ✅ أضف الـ context هنا
-  required Map<String, dynamic> doctor,
-  required double screenHeight,
-  required double screenWidth,
-}) {
-  return InkWell(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              DoctorProfilePage(doctorId: 'doctor_document_id'),
-        ),
-      );
-    },
-    child: Container(
-      width: screenWidth * 0.45,
-      margin: EdgeInsets.only(right: screenWidth * 0.03),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: Offset(0, 3),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pop(context);
+              // Add your logout logic here
+            },
+            child: Text(
+              "تسجيل الخروج",
+              style: TextStyle(color: Colors.red),
+            ),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-            child: Image.network(
-              doctor['image'] ?? 'https://via.placeholder.com/150',
-              height: screenHeight * 0.15,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(child: CircularProgressIndicator());
-              },
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: Colors.grey[200],
-                child: Icon(Icons.person, size: 50, color: Colors.grey),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          SizedBox(width: 10),
+          Text(
+            value,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDoctorCard({
+    required BuildContext context, // ✅ أضف الـ context هنا
+    required Map<String, dynamic> doctor,
+    required double screenHeight,
+    required double screenWidth,
+  }) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => DoctorProfilePage(doctorId: doctor["id"]),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12), // ✅ تأثير جميل عند الضغط
+      splashColor: Colors.blue.withOpacity(0.2), // ✅ تأثير عند الضغط
+      child: Container(
+        width: screenWidth * 0.45,
+        margin: EdgeInsets.only(right: screenWidth * 0.03),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 2,
+              blurRadius: 5,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                doctor['image'] ?? 'https://via.placeholder.com/150',
+                height: screenHeight * 0.12, // ✅ زِد الارتفاع قليلاً
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Shimmer.fromColors(
+                    baseColor: Colors.grey[300]!,
+                    highlightColor: Colors.grey[100]!,
+                    child: Container(
+                      height: screenHeight * 0.12, // ✅ نفس ارتفاع الصورة
+                      width: double.infinity,
+                      color: Colors.grey[300],
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: screenHeight * 0.12,
+                  width: double.infinity,
+                  color: Colors.grey[200],
+                  child: Icon(Icons.person, size: 50, color: Colors.grey),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  doctor['name'] ?? 'دكتور غير معروف',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: screenWidth * 0.04,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  doctor['specialization'] ?? 'تخصص غير محدد',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: screenWidth * 0.035,
-                  ),
-                ),
-                SizedBox(height: 6),
-                Row(
+            Expanded(
+              // ✅ يجعل النصوص تأخذ المساحة المتبقية
+              child: Padding(
+                padding: EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.star, color: Colors.amber, size: 16),
-                    SizedBox(width: 4),
                     Text(
-                      doctor['rating']?.toString() ?? '0.0',
-                      style: TextStyle(fontSize: screenWidth * 0.035),
+                      doctor['name'] ?? 'دكتور غير معروف',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: screenWidth * 0.042,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Spacer(),
-                    Icon(Icons.medical_services, color: Colors.blue, size: 16),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.medical_services,
+                            color: Colors.blue, size: 18),
+                        SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            doctor['specialization'] ?? 'تخصص غير محدد',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: screenWidth * 0.035,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.star, color: Colors.amber, size: 18),
+                        SizedBox(width: 4),
+                        Text(
+                          doctor['rating']?.toString() ?? '0.0',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.038,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Spacer(),
+                        Icon(Icons.arrow_forward_ios,
+                            color: Colors.blueAccent, size: 16),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
-
-//nononon

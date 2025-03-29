@@ -17,7 +17,7 @@ class DoctorProfilePage extends StatelessWidget {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('doctors')
-            .doc("eIRcYKQjKiHjPRnOZTRX")
+            .doc(doctorId)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -169,7 +169,9 @@ class DoctorProfilePage extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AppointmentPage(),
+        builder: (context) => AppointmentPage(
+          doctorId: doctorId,
+        ),
       ),
     );
   }

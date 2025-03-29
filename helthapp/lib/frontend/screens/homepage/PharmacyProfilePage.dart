@@ -17,7 +17,7 @@ class PharmacyProfilePage extends StatelessWidget {
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance
             .collection('pharmacies')
-            .doc("WG35OwWM7BZ2JHIB6npY")
+            .doc(pharmacyId)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
@@ -131,20 +131,6 @@ class PharmacyProfilePage extends StatelessWidget {
                         SizedBox(height: 20),
 
                         // زر الطلب
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: () => _placeOrder(context, pharmacy),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.green,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              minimumSize: Size(screenWidth * 0.8, 50),
-                            ),
-                            child: Text('Order Medicine',
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -185,15 +171,6 @@ class PharmacyProfilePage extends StatelessWidget {
                 ),
               ))
           .toList(),
-    );
-  }
-
-  void _placeOrder(BuildContext context, Map<String, dynamic> pharmacy) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AppointmentPage(),
-      ),
     );
   }
 }
