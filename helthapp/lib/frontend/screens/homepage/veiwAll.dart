@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:helthapp/frontend/screens/homepage/DoctorDetailPage.dart';
+import 'package:helthapp/frontend/screens/homepage/PharmacyProfilePage.dart';
 
 class ViewAllPage extends StatelessWidget {
   final String categoryType; // ✅ نوع القسم المرسل
@@ -62,12 +64,21 @@ class ViewAllPage extends StatelessWidget {
       {required BuildContext context}) {
     return InkWell(
       onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ItemDetailPage(itemId: itemId),
-          ),
-        );
+        if (categoryType == "pharmacies") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PharmacyProfilePage(pharmacyId: itemId),
+            ),
+          );
+        } else if (categoryType == "doctors") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DoctorProfilePage(doctorId: itemId),
+            ),
+          );
+        }
       },
       child: Container(
         decoration: BoxDecoration(
@@ -112,21 +123,6 @@ class ViewAllPage extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-// ✅ صفحة عرض تفاصيل العنصر
-class ItemDetailPage extends StatelessWidget {
-  final String itemId;
-
-  const ItemDetailPage({Key? key, required this.itemId}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text("تفاصيل العنصر")),
-      body: Center(child: Text("عرض تفاصيل العنصر ID: $itemId")),
     );
   }
 }

@@ -1,10 +1,9 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:helthapp/frontend/screens/homepage/DoctorDetailPage.dart';
-import 'package:helthapp/frontend/screens/homepage/PharmacyProfilePage.dart';
+import 'package:helthapp/frontend/screens/homepage/DoctorList.dart';
+import 'package:helthapp/frontend/screens/homepage/PharmacyList.dart';
+import 'package:helthapp/frontend/screens/homepage/CustomDrawer.dart';
 import 'package:helthapp/frontend/screens/homepage/veiwAll.dart';
-import 'package:helthapp/frontend/screens/subscribe/subscribe.dart';
-import 'package:shimmer/shimmer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomePage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -13,19 +12,6 @@ class HomePage extends StatelessWidget {
     {'icon': Icons.medical_services, 'title': 'Consultation'},
     {'icon': Icons.shopping_cart, 'title': 'In-store shopping'},
     {'icon': Icons.shopping_bag, 'title': 'Online shopping'},
-  ];
-
-  final List<Map<String, dynamic>> pharmacies = [
-    {
-      'name': 'Block Drug Store',
-      'location': 'New York (3.6 km)',
-      'image': 'assets/pills1.png'
-    },
-    {
-      'name': 'Walgreens',
-      'location': 'New York (4.2 km)',
-      'image': 'assets/pills2.png'
-    },
   ];
 
   @override
@@ -50,99 +36,14 @@ class HomePage extends StatelessWidget {
           )
         ],
       ),
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            // Header Section
-            UserAccountsDrawerHeader(
-              accountName: Text(
-                "أحمد محمد",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              accountEmail: Text(
-                "ahmed@example.com",
-                style: TextStyle(fontSize: 14),
-              ),
-              currentAccountPicture: CircleAvatar(
-                radius: 30,
-                backgroundColor: Colors.white,
-                backgroundImage: NetworkImage(
-                    "https://example.com/path/to/profile/image.jpg"),
-                child: Icon(
-                  Icons.person,
-                  size: 30,
-                  color: Colors.blue,
-                ),
-              ),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Colors.blue[700]!, Colors.blue[400]!],
-                ),
-              ),
-            ),
-
-            // Main Menu Items
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  // Profile Section
-                  _buildDrawerItem(
-                    icon: Icons.person_outline,
-                    title: "الملف الشخصي",
-                    onTap: () => _navigateTo(context, '/profile'),
-                  ),
-                  _buildDrawerItem(
-                      icon: Icons.subscript,
-                      title: "الاشتراكات",
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => PricingPlansPage()),
-                        );
-                      }),
-
-                  // Settings Section
-                  _buildDrawerItem(
-                    icon: Icons.settings_outlined,
-                    title: "الإعدادات",
-                    onTap: () => _navigateTo(context, '/settings'),
-                  ),
-
-                  // Divider with spacing
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Divider(height: 1),
-                  ),
-
-                  // Logout Section
-                  _buildDrawerItem(
-                    icon: Icons.exit_to_app,
-                    title: "تسجيل الخروج",
-                    onTap: () => _handleLogout(context),
-                    textColor: Colors.red,
-                    iconColor: Colors.red,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      drawer: CustomDrawer(),
       body: SingleChildScrollView(
         child: Padding(
           padding: EdgeInsets.all(screenWidth * 0.04),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSearchField(screenHeight, screenWidth),
+              _buildSearchField(context, screenHeight, screenWidth),
               SizedBox(height: screenHeight * 0.02),
               Padding(
                   padding: const EdgeInsets.all(8.0),
@@ -166,7 +67,6 @@ class HomePage extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -182,18 +82,12 @@ class HomePage extends StatelessWidget {
                                   color: Colors.white, size: 30),
                             ],
                           ),
-
                           SizedBox(height: 30),
-
-                          // Card Details
                           _buildDetailRow("اسم المؤمّن:", "أحمد محمد"),
                           _buildDetailRow("رقم البطاقة:", "•••• 5689"),
                           _buildDetailRow("نوع التأمين:", "طبي شامل"),
                           _buildDetailRow("تاريخ الانتهاء:", "12/2025"),
-
                           Spacer(),
-
-                          // Footer
                         ],
                       ),
                     ),
@@ -211,12 +105,12 @@ class HomePage extends StatelessWidget {
               _buildSectionWithViewAll(
                   'Pharmacy', screenWidth, "pharmacies", context),
               SizedBox(height: screenHeight * 0.01),
-              _buildPharmacyList(screenHeight, screenWidth),
+              PharmacyList(),
               SizedBox(height: screenHeight * 0.02),
               _buildSectionWithViewAll(
-                  'Popular Doctors', screenWidth, "context", context),
+                  'Popular Doctors', screenWidth, "doctors", context),
               SizedBox(height: screenHeight * 0.01),
-              _buildDoctorsList(screenHeight, screenWidth),
+              DoctorList(),
             ],
           ),
         ),
@@ -224,18 +118,35 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchField(double screenHeight, double screenWidth) {
-    return TextField(
-      decoration: InputDecoration(
-        hintText: "Search",
-        prefixIcon: Icon(Icons.search, size: screenWidth * 0.06),
-        filled: true,
-        fillColor: Colors.grey[200],
-        border: OutlineInputBorder(
+  Widget _buildSearchField(
+      BuildContext context, double screenHeight, double screenWidth) {
+    return GestureDetector(
+      onTap: () {
+        showSearch(
+          context: context,
+          delegate: CustomSearchDelegate(),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
           borderRadius: BorderRadius.circular(screenWidth * 0.03),
-          borderSide: BorderSide.none,
         ),
-        contentPadding: EdgeInsets.symmetric(vertical: screenHeight * 0.015),
+        padding: EdgeInsets.symmetric(
+          vertical: screenHeight * 0.015,
+          horizontal: screenWidth * 0.04,
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.search, size: screenWidth * 0.06, color: Colors.grey),
+            SizedBox(width: screenWidth * 0.02),
+            Text(
+              "Search",
+              style:
+                  TextStyle(color: Colors.grey, fontSize: screenWidth * 0.04),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -312,212 +223,6 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildPharmacyList(
-    double screenHeight,
-    double screenWidth,
-  ) {
-    return SizedBox(
-      height: screenHeight * 0.2,
-      child: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('pharmacies').snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
-
-          final pharmacies = snapshot.data!.docs;
-
-          return ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: pharmacies.length,
-            itemBuilder: (context, index) {
-              final doc = pharmacies[index];
-              final pharmacy = doc.data() as Map<String, dynamic>;
-
-              // ✅ إضافة id للصيدلية
-              final pharmacyId = doc.id;
-
-              return _buildPharmacyCard(
-                pharmacyId, // ✅ تمرير ID هنا
-                pharmacy['name'] ?? 'No Name',
-                pharmacy['location'] ?? 'Unknown Location',
-                pharmacy['image'] ?? 'https://via.placeholder.com/150',
-                screenHeight,
-                screenWidth,
-                context: context,
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPharmacyCard(
-      String pharmacyId, // ✅ إضافة هذا الباراميتر
-      String name,
-      String location,
-      String image,
-      double screenHeight,
-      double screenWidth,
-      {required BuildContext context}) {
-    return InkWell(
-      onTap: () {
-        // ✅ تمرير pharmacyId إلى الصفحة الجديدة
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PharmacyProfilePage(pharmacyId: pharmacyId),
-          ),
-        );
-      },
-      child: Container(
-        width: screenWidth * 0.4,
-        margin: EdgeInsets.only(right: screenWidth * 0.03),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(screenWidth * 0.03),
-              child: Image.network(
-                image, // ✅ تغيير إلى `Image.network` لدعم الصور من الإنترنت
-                height: screenHeight * 0.10,
-                width: screenWidth * 0.4,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Center(child: CircularProgressIndicator());
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: screenHeight * 0.13,
-                  width: screenWidth * 0.4,
-                  color: Colors.grey[200],
-                  child: Icon(Icons.photo, size: screenWidth * 0.1),
-                ),
-              ),
-            ),
-            SizedBox(height: screenHeight * 0.01),
-            Text(name,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold, fontSize: screenWidth * 0.04)),
-            Text(location,
-                style: TextStyle(
-                    color: Colors.grey[600], fontSize: screenWidth * 0.035)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDoctorsList(double screenHeight, double screenWidth) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('doctors').snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(child: Text('حدث خطأ في تحميل بيانات الأطباء'));
-        }
-
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        }
-
-        final doctors = snapshot.data!.docs;
-
-        if (doctors.isEmpty) {
-          return Center(child: Text('لا يوجد أطباء متاحين حالياً'));
-        }
-
-        return SizedBox(
-          height: screenHeight * 0.25,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: doctors.length,
-            itemBuilder: (context, index) {
-              final doc = doctors[index];
-              final doctor = doc.data() as Map<String, dynamic>;
-
-              // ✅ إضافة id إلى بيانات الطبيب
-              doctor['id'] = doc.id;
-
-              return _buildDoctorCard(
-                doctor: doctor,
-                screenHeight: screenHeight,
-                screenWidth: screenWidth,
-                context: context,
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
-// Helper method to build drawer items
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String title,
-    required Function() onTap,
-    Color? textColor,
-    Color? iconColor,
-  }) {
-    return ListTile(
-      contentPadding: EdgeInsets.symmetric(horizontal: 8),
-      leading: Icon(
-        icon,
-        color: iconColor ?? Colors.blue[700],
-        size: 24,
-      ),
-      title: Text(
-        title,
-        style: TextStyle(
-          fontSize: 16,
-          color: textColor ?? Colors.black87,
-        ),
-      ),
-      onTap: onTap,
-      minLeadingWidth: 24,
-      dense: true,
-    );
-  }
-
-// Navigation helper method
-  void _navigateTo(BuildContext context, String route) {
-    Navigator.pop(context);
-    Navigator.pushNamed(context, route);
-  }
-
-// Logout handler
-  void _handleLogout(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("تأكيد تسجيل الخروج"),
-        content: Text("هل أنت متأكد أنك تريد تسجيل الخروج؟"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("إلغاء"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-              // Add your logout logic here
-            },
-            child: Text(
-              "تسجيل الخروج",
-              style: TextStyle(color: Colors.red),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4),
@@ -543,129 +248,173 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildDoctorCard({
-    required BuildContext context, // ✅ أضف الـ context هنا
-    required Map<String, dynamic> doctor,
-    required double screenHeight,
-    required double screenWidth,
-  }) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => DoctorProfilePage(doctorId: doctor["id"]),
-          ),
+// Custom SearchDelegate for searching doctors and pharmacies
+class CustomSearchDelegate extends SearchDelegate {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  @override
+  List<Widget> buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return FutureBuilder<List<QuerySnapshot>>(
+      future: Future.wait([
+        _firestore
+            .collection('doctors') // Replace with your doctors collection name
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+            .get(),
+        _firestore
+            .collection(
+                'pharmacies') // Replace with your pharmacies collection name
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+            .get(),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData ||
+            snapshot.data!.every((doc) => doc.docs.isEmpty)) {
+          return Center(child: Text('No results found.'));
+        }
+
+        final doctorsResults = snapshot.data![0].docs;
+        final pharmaciesResults = snapshot.data![1].docs;
+
+        return ListView(
+          children: [
+            if (doctorsResults.isNotEmpty) ...[
+              ListTile(
+                title: Text('Doctors',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ...doctorsResults.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return ListTile(
+                  title: Text(data['name']),
+                  subtitle: Text('Doctor'),
+                  onTap: () {
+                    // Handle doctor selection
+                  },
+                );
+              }).toList(),
+            ],
+            if (pharmaciesResults.isNotEmpty) ...[
+              ListTile(
+                title: Text('Pharmacies',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+              ...pharmaciesResults.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return ListTile(
+                  title: Text(data['name']),
+                  subtitle: Text('Pharmacy'),
+                  onTap: () {
+                    // Handle pharmacy selection
+                  },
+                );
+              }).toList(),
+            ],
+          ],
         );
       },
-      borderRadius: BorderRadius.circular(12), // ✅ تأثير جميل عند الضغط
-      splashColor: Colors.blue.withOpacity(0.2), // ✅ تأثير عند الضغط
-      child: Container(
-        width: screenWidth * 0.45,
-        margin: EdgeInsets.only(right: screenWidth * 0.03),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 5,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    if (query.isEmpty) {
+      return Center(child: Text('Start typing to search.'));
+    }
+
+    return FutureBuilder<List<QuerySnapshot>>(
+      future: Future.wait([
+        _firestore
+            .collection('doctors') // Replace with your doctors collection name
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+            .get(),
+        _firestore
+            .collection(
+                'pharmacies') // Replace with your pharmacies collection name
+            .where('name', isGreaterThanOrEqualTo: query)
+            .where('name', isLessThanOrEqualTo: query + '\uf8ff')
+            .get(),
+      ]),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData ||
+            snapshot.data!.every((doc) => doc.docs.isEmpty)) {
+          return Center(child: Text('No suggestions available.'));
+        }
+
+        final doctorsSuggestions = snapshot.data![0].docs;
+        final pharmaciesSuggestions = snapshot.data![1].docs;
+
+        return ListView(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-              child: Image.network(
-                doctor['image'] ?? 'https://via.placeholder.com/150',
-                height: screenHeight * 0.12, // ✅ زِد الارتفاع قليلاً
-                width: double.infinity,
-                fit: BoxFit.cover,
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Shimmer.fromColors(
-                    baseColor: Colors.grey[300]!,
-                    highlightColor: Colors.grey[100]!,
-                    child: Container(
-                      height: screenHeight * 0.12, // ✅ نفس ارتفاع الصورة
-                      width: double.infinity,
-                      color: Colors.grey[300],
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: screenHeight * 0.12,
-                  width: double.infinity,
-                  color: Colors.grey[200],
-                  child: Icon(Icons.person, size: 50, color: Colors.grey),
-                ),
+            if (doctorsSuggestions.isNotEmpty) ...[
+              ListTile(
+                title: Text('Doctors',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-            ),
-            Expanded(
-              // ✅ يجعل النصوص تأخذ المساحة المتبقية
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      doctor['name'] ?? 'دكتور غير معروف',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: screenWidth * 0.042,
-                        color: Colors.black87,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.medical_services,
-                            color: Colors.blue, size: 18),
-                        SizedBox(width: 5),
-                        Expanded(
-                          child: Text(
-                            doctor['specialization'] ?? 'تخصص غير محدد',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: screenWidth * 0.035,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.star, color: Colors.amber, size: 18),
-                        SizedBox(width: 4),
-                        Text(
-                          doctor['rating']?.toString() ?? '0.0',
-                          style: TextStyle(
-                            fontSize: screenWidth * 0.038,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Spacer(),
-                        Icon(Icons.arrow_forward_ios,
-                            color: Colors.blueAccent, size: 16),
-                      ],
-                    ),
-                  ],
-                ),
+              ...doctorsSuggestions.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return ListTile(
+                  title: Text(data['name']),
+                  subtitle: Text('Doctor'),
+                  onTap: () {
+                    query = data['name'];
+                    showResults(context);
+                  },
+                );
+              }).toList(),
+            ],
+            if (pharmaciesSuggestions.isNotEmpty) ...[
+              ListTile(
+                title: Text('Pharmacies',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-            ),
+              ...pharmaciesSuggestions.map((doc) {
+                final data = doc.data() as Map<String, dynamic>;
+                return ListTile(
+                  title: Text(data['name']),
+                  subtitle: Text('Pharmacy'),
+                  onTap: () {
+                    query = data['name'];
+                    showResults(context);
+                  },
+                );
+              }).toList(),
+            ],
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

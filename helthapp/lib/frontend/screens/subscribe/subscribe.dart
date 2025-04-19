@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helthapp/frontend/screens/subscribe/fill_information_page.dart';
 
 class PricingPlansPage extends StatefulWidget {
   @override
@@ -200,7 +201,14 @@ class PricingCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FillInformationPage(planTitle: title),
+                  ),
+                );
+              },
               child: const Text(
                 "Select",
                 style: TextStyle(
