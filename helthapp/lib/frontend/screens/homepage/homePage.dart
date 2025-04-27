@@ -4,6 +4,7 @@ import 'package:helthapp/frontend/screens/homepage/PharmacyList.dart';
 import 'package:helthapp/frontend/screens/homepage/CustomDrawer.dart';
 import 'package:helthapp/frontend/screens/homepage/veiwAll.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
@@ -52,44 +53,95 @@ class HomePage extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child: Container(
-                      height: screenHeight * 0.27,
-                      width: 350,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade700, Colors.blue.shade900],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                "بــطاقـة تـأمـين",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
+                    child: FutureBuilder<User?>(
+                      future: FirebaseAuth.instance.authStateChanges().first,
+                      builder: (context, userSnapshot) {
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return Center(child: CircularProgressIndicator());
+                        }
+                        if (!userSnapshot.hasData) {
+                          return Center(child: Text('User not logged in.'));
+                        }
+
+                        final userId = userSnapshot.data!.uid;
+
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: FirebaseFirestore.instance
+                              .collection(
+                                  'subscriptions') // Replace with your collection name
+                              .doc(userId) // Use the logged-in user's ID
+                              .get(),
+                          builder: (context, snapshot) {
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+                            if (!snapshot.hasData || !snapshot.data!.exists) {
+                              return Center(
+                                  child: Text('No insurance data available.'));
+                            }
+
+                            final data =
+                                snapshot.data!.data() as Map<String, dynamic>;
+                            return Container(
+                              height: screenHeight * 0.27,
+                              width: 350,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.blue.shade700,
+                                    Colors.blue.shade900
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
                                 ),
                               ),
-                              Icon(Icons.medical_services,
-                                  color: Colors.white, size: 30),
-                            ],
-                          ),
-                          SizedBox(height: 30),
-                          _buildDetailRow("اسم المؤمّن:", "أحمد محمد"),
-                          _buildDetailRow("رقم البطاقة:", "•••• 5689"),
-                          _buildDetailRow("نوع التأمين:", "طبي شامل"),
-                          _buildDetailRow("تاريخ الانتهاء:", "12/2025"),
-                          Spacer(),
-                        ],
-                      ),
+                              padding: EdgeInsets.all(20),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        "Insurance Card",
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Icon(Icons.medical_services,
+                                          color: Colors.white, size: 30),
+                                    ],
+                                  ),
+                                  SizedBox(height: 30),
+                                  _buildDetailRow("Insured Name:",
+                                      data['fullName'] ?? 'N/A'),
+                                  _buildDetailRow("Card Number:",
+                                      data['insuranceNumber'] ?? 'N/A'),
+                                  _buildDetailRow("Insurance Type:",
+                                      data['insuranceType'] ?? 'N/A'),
+                                  _buildDetailRow(
+                                    "Expiry Date:",
+                                    data['expiryDate'] is Timestamp
+                                        ? (data['expiryDate'] as Timestamp)
+                                            .toDate()
+                                            .toLocal()
+                                            .toString()
+                                            .split(' ')[0]
+                                        : data['expiryDate'] ?? 'N/A',
+                                  ),
+                                  Spacer(),
+                                ],
+                              ),
+                            );
+                          },
+                        );
+                      },
                     ),
                   )),
               Text(
