@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:helthapp/frontend/auth/signup.dart';
+import 'package:helthapp/frontend/screens/admin/admin/adminPage.dart';
+import 'package:helthapp/frontend/screens/doctor/doctor.dart';
 import 'package:helthapp/frontend/screens/homepage/homePage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -31,10 +34,27 @@ class _LoginPageState extends State<LoginPage> {
         email: emailController.text.trim(),
         password: passController.text.trim(),
       );
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => HomePage()),
-      );
+
+      // Check if the user is an admin
+      final adminSnapshot = await FirebaseFirestore.instance
+          .collection('admin')
+          .doc(emailController.text.trim())
+          .get();
+
+      if (adminSnapshot.exists) {
+        // Navigate to AdminPage if the user is an admin
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const AdminPage()),
+        );
+      } else {
+        // Navigate to HomePage if the user is not an admin
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => HomePage()),
+        );
+      }
+
       _showSnackBar("Sign-in successful!", Colors.green);
     } catch (e) {
       _showSnackBar("Error: ${e.toString()}", Colors.red);
@@ -136,6 +156,22 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 10),
 
+                    // 🟢 زر تسجيل الدخول كدكتور
+                    ElevatedButton(
+                      onPressed: isLoading ? null : _signInAsDoctor,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text("Sign in as Doctor",
+                              style:
+                                  TextStyle(fontSize: 18, color: Colors.white)),
+                    ),
+
+                    const SizedBox(height: 10),
+
                     // 🔹 رابط "نسيت كلمة المرور"
                     TextButton(
                       onPressed: _resetPassword,
@@ -202,5 +238,49 @@ class _LoginPageState extends State<LoginPage> {
             : null,
       ),
     );
+  }
+
+  void _signInAsDoctor() async {
+    final email = emailController.text.trim();
+    final password = passController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      _showSnackBar("Please enter both email and password", Colors.red);
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      // تسجيل الدخول
+      final credential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final uid = credential.user!.uid;
+
+      // التحقق من وجوده في جدول الدكاترة
+      final doctorDoc =
+          await FirebaseFirestore.instance.collection('doctors').doc(uid).get();
+
+      if (doctorDoc.exists) {
+        // ✅ دكتور مسجّل → توجيه للصفحة الخاصة
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DoctorHomePage()),
+        );
+        _showSnackBar("Welcome Doctor!", Colors.green);
+      } else {
+        // ❌ ليس دكتور
+        _showSnackBar(
+            "This account is not registered as a doctor", Colors.orange);
+        await _auth.signOut(); // منع الوصول
+      }
+    } catch (e) {
+      _showSnackBar("Error: ${e.toString()}", Colors.red);
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 }
