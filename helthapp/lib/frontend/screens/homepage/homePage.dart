@@ -9,7 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 class HomePage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<Map<String, dynamic>> services = [
-    {'icon': Icons.local_pharmacy, 'title': 'Pharmacy'},
+    {'icon': Icons.local_pharmacy, 'title': 'Pharm45acy'},
     {'icon': Icons.medical_services, 'title': 'Consultation'},
     {'icon': Icons.shopping_cart, 'title': 'In-store shopping'},
     {'icon': Icons.shopping_bag, 'title': 'Online shopping'},
