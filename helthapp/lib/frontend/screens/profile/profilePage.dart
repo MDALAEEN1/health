@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart'; // Add this import for date formatting
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -24,6 +25,12 @@ class _ProfilePageState extends State<ProfilePage> {
     DocumentSnapshot userDoc =
         await _firestore.collection('users').doc(userId).get();
     return userDoc.data() as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> _fetchSubscriptionData(String userId) async {
+    DocumentSnapshot subscriptionDoc =
+        await _firestore.collection('subscriptions').doc(userId).get();
+    return subscriptionDoc.data() as Map<String, dynamic>;
   }
 
   void _saveChanges(String userId) async {
@@ -72,59 +79,81 @@ class _ProfilePageState extends State<ProfilePage> {
             _phoneController.text = userData['phone'] ?? "";
           }
 
-          return ListView(
-            padding: EdgeInsets.all(16.0),
-            children: [
-              // Profile Header
-              _buildProfileHeader(userData),
+          return FutureBuilder<Map<String, dynamic>>(
+            future:
+                _fetchSubscriptionData(FirebaseAuth.instance.currentUser!.uid),
+            builder: (context, subscriptionSnapshot) {
+              if (subscriptionSnapshot.connectionState ==
+                  ConnectionState.waiting) {
+                return Center(child: CircularProgressIndicator());
+              } else if (subscriptionSnapshot.hasError) {
+                return Center(
+                    child:
+                        Text("An error occurred while loading subscriptions"));
+              } else if (!subscriptionSnapshot.hasData ||
+                  subscriptionSnapshot.data == null) {
+                return Center(child: Text("No subscription data available"));
+              }
 
-              SizedBox(height: 16),
+              final subscriptionData = subscriptionSnapshot.data!;
+              return ListView(
+                padding: EdgeInsets.all(16.0),
+                children: [
+                  // Profile Header
+                  _buildProfileHeader(userData),
 
-              // Personal Information
-              _buildSectionHeader("Personal Information"),
-              _buildEditableProfileItem(
-                icon: Icons.person_outline,
-                title: "Full Name",
-                controller: _nameController,
-                isEditing: _isEditing,
-              ),
-              _buildEditableProfileItem(
-                icon: Icons.email_outlined,
-                title: "Email",
-                controller: _emailController,
-                isEditing: _isEditing,
-              ),
-              _buildEditableProfileItem(
-                icon: Icons.phone_outlined,
-                title: "Phone Number",
-                controller: _phoneController,
-                isEditing: _isEditing,
-              ),
+                  SizedBox(height: 16),
 
-              // Insurance Information (non-editable)
-              _buildSectionHeader("Insurance Information"),
-              _buildProfileItem(
-                icon: Icons.card_membership_outlined,
-                title: "Insurance Type",
-                value: userData['insuranceType'] ?? "Not Available",
-              ),
-              _buildProfileItem(
-                icon: Icons.date_range_outlined,
-                title: "Insurance Expiry Date",
-                value: userData['insuranceExpiry'] ?? "Not Available",
-              ),
+                  // Personal Information
+                  _buildSectionHeader("Personal Information"),
+                  _buildEditableProfileItem(
+                    icon: Icons.person_outline,
+                    title: "Full Name",
+                    controller: _nameController,
+                    isEditing: _isEditing,
+                  ),
+                  _buildEditableProfileItem(
+                    icon: Icons.email_outlined,
+                    title: "Email",
+                    controller: _emailController,
+                    isEditing: _isEditing,
+                  ),
+                  _buildEditableProfileItem(
+                    icon: Icons.phone_outlined,
+                    title: "Phone Number",
+                    controller: _phoneController,
+                    isEditing: _isEditing,
+                  ),
 
-              if (_isEditing)
-                ElevatedButton(
-                  onPressed: () {
-                    final user = FirebaseAuth.instance.currentUser;
-                    if (user != null) {
-                      _saveChanges(user.uid);
-                    }
-                  },
-                  child: Text("Save Changes"),
-                ),
-            ],
+                  // Insurance Information (non-editable)
+                  _buildSectionHeader("Insurance Information"),
+                  _buildProfileItem(
+                    icon: Icons.card_membership_outlined,
+                    title: "Insurance Type",
+                    value: subscriptionData['insuranceType'] ?? "Not Available",
+                  ),
+                  _buildProfileItem(
+                    icon: Icons.date_range_outlined,
+                    title: "Insurance Expiry Date",
+                    value: subscriptionData['expiryDate'] != null
+                        ? DateFormat('yyyy-MM-dd')
+                            .format(subscriptionData['expiryDate'].toDate())
+                        : "Not Available",
+                  ),
+
+                  if (_isEditing)
+                    ElevatedButton(
+                      onPressed: () {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user != null) {
+                          _saveChanges(user.uid);
+                        }
+                      },
+                      child: Text("Save Changes"),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),

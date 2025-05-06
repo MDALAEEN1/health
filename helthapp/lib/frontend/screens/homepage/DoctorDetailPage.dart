@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:helthapp/frontend/screens/homepage/AppointmentPage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class DoctorProfilePage extends StatelessWidget {
   final String doctorId;
@@ -128,19 +129,51 @@ class DoctorProfilePage extends StatelessWidget {
                         SizedBox(height: 30),
 
                         // زر الحجز
-                        Center(
-                          child: ElevatedButton(
-                            onPressed: () => _bookAppointment(context, doctor),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                        StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseAuth.instance
+                              .authStateChanges()
+                              .asyncMap((user) async {
+                            if (user == null) {
+                              throw Exception('User is not logged in');
+                            }
+                            return await FirebaseFirestore.instance
+                                .collection('subscriptions')
+                                .doc(user.uid)
+                                .get();
+                          }),
+                          builder: (context, userSnapshot) {
+                            if (userSnapshot.hasError ||
+                                !userSnapshot.hasData ||
+                                !userSnapshot.data!.exists) {
+                              return Center(child: CircularProgressIndicator());
+                            }
+
+                            final userPlan = (userSnapshot.data!.data()
+                                    as Map<String, dynamic>)['insuranceType'] ??
+                                '';
+                            final doctorCategory = doctor['category'] ?? '';
+
+                            return Center(
+                              child: ElevatedButton(
+                                onPressed: userPlan == doctorCategory
+                                    ? () => _bookAppointment(context, doctor)
+                                    : null,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  minimumSize: Size(screenWidth * 0.8, 50),
+                                ),
+                                child: Text(
+                                  userPlan == doctorCategory
+                                      ? 'Book Appointment'
+                                      : 'Not Eligible',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                               ),
-                              minimumSize: Size(screenWidth * 0.8, 50),
-                            ),
-                            child: Text('Book Appointment',
-                                style: TextStyle(color: Colors.white)),
-                          ),
+                            );
+                          },
                         ),
                       ],
                     ),

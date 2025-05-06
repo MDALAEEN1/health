@@ -24,7 +24,7 @@ class AdminPage extends StatelessWidget {
   }
 
   Future<void> createDoctorAccount(
-      String email, String password, String name) async {
+      String email, String password, String name, String category) async {
     try {
       // Create user in Firebase Authentication
       UserCredential userCredential = await FirebaseAuth.instance
@@ -39,6 +39,7 @@ class AdminPage extends StatelessWidget {
         'email': email,
         'name': name,
         'specialization': 'General',
+        'category': category, // Add category
       });
     } catch (e) {
       throw Exception("Failed to create doctor account: $e");
@@ -49,6 +50,7 @@ class AdminPage extends StatelessWidget {
     final emailController = TextEditingController();
     final passwordController = TextEditingController();
     final nameController = TextEditingController();
+    String selectedCategory = 'pro'; // Default category
 
     showDialog(
       context: context,
@@ -71,6 +73,20 @@ class AdminPage extends StatelessWidget {
                 decoration: const InputDecoration(labelText: "Password"),
                 obscureText: true,
               ),
+              DropdownButtonFormField<String>(
+                value: selectedCategory,
+                items: const [
+                  DropdownMenuItem(value: 'Pro', child: Text('Pro')),
+                  DropdownMenuItem(value: 'Premuim', child: Text('Premuim')),
+                  DropdownMenuItem(value: 'Basic', child: Text('Basic')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    selectedCategory = value;
+                  }
+                },
+                decoration: const InputDecoration(labelText: "Category"),
+              ),
             ],
           ),
           actions: [
@@ -87,7 +103,8 @@ class AdminPage extends StatelessWidget {
                 if (name.isNotEmpty &&
                     email.isNotEmpty &&
                     password.isNotEmpty) {
-                  await createDoctorAccount(email, password, name);
+                  await createDoctorAccount(
+                      email, password, name, selectedCategory);
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Doctor account created!")),

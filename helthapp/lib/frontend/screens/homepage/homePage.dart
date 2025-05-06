@@ -5,13 +5,16 @@ import 'package:helthapp/frontend/screens/homepage/CustomDrawer.dart';
 import 'package:helthapp/frontend/screens/homepage/veiwAll.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:helthapp/frontend/screens/appointments/appointmentsPage.dart';
+import 'package:helthapp/frontend/screens/appointments/previousAppointmentsPage.dart';
+import 'package:helthapp/frontend/screens/subscribe/subscribe.dart';
 
 class HomePage extends StatelessWidget {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final List<Map<String, dynamic>> services = [
-    {'icon': Icons.local_pharmacy, 'title': 'Pharm45acy'},
-    {'icon': Icons.medical_services, 'title': 'Consultation'},
-    {'icon': Icons.shopping_cart, 'title': 'In-store shopping'},
+    {'icon': Icons.local_pharmacy, 'title': 'plans'},
+    {'icon': Icons.medical_services, 'title': 'Appointments'},
+    {'icon': Icons.skip_previous, 'title': 'Previous Appointments'},
     {'icon': Icons.shopping_bag, 'title': 'Online shopping'},
   ];
 
@@ -249,14 +252,38 @@ class HomePage extends StatelessWidget {
           services[index]['icon'] as IconData,
           services[index]['title'] as String,
           screenWidth,
+          context,
         );
       },
     );
   }
 
-  Widget _buildServiceIcon(IconData icon, String title, double screenWidth) {
+  Widget _buildServiceIcon(
+      IconData icon, String title, double screenWidth, BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        if (title == 'plans') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PricingPlansPage()),
+          );
+        } else if (title == 'Appointments') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AppointmentsPage()),
+          );
+        } else if (title == 'Previous Appointments') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PreviousAppointmentsPage()),
+          );
+        } else if (title == 'plans') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PricingPlansPage()),
+          );
+        }
+      },
       child: Column(
         children: [
           CircleAvatar(
